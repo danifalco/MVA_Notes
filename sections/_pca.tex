@@ -1,0 +1,166 @@
+\section{Overview of PCA and Factor Analysis}
+\textbf{Principal Component Analysis (PCA)} and \textbf{Factor Analysis (FA)} are both multivariate techniques aimed at dimensionality reduction, but with different goals:
+\begin{itemize}
+    \item \textbf{PCA} focuses on maximizing the variance captured by each component, making it ideal for visualizing high-dimensional data and identifying major sources of variation.
+    \item \textbf{FA} seeks to identify latent factors that explain observed variable correlations, making it more suitable for uncovering hidden structures or constructs within the data.
+\end{itemize}
+
+\subsection{Choosing Between PCA and FA}
+\begin{itemize}
+    \item \textbf{Use PCA when}:
+        \begin{itemize}
+            \item You aim to capture as much variance as possible.
+            \item Data is numeric and relationships are linear.
+            \item You are more interested in reducing dimensionality for visualization purposes.
+        \end{itemize}
+    \item \textbf{Use FA when}:
+        \begin{itemize}
+            \item The goal is to identify underlying latent variables.
+            \item You want to explore hidden structures or groupings within the data.
+            \item Data might be non-normal or categorical, requiring alternative approaches like polychoric FA.
+        \end{itemize}
+\end{itemize}
+
+\section{PCA on USArrests Data using \texttt{princomp}}
+\begin{itemize}
+    \item \texttt{princomp()} uses spectral decomposition on the covariance or correlation matrix.
+    \item The choice between using a correlation matrix (\texttt{cor = TRUE}) or covariance matrix depends on whether the data needs to be standardized.
+    \item Example:
+\begin{lstlisting}[language=R]
+data <- USArrests
+pcUSA <- princomp(data, cor = TRUE)
+summary(pcUSA)
+
+# Eigenvalues of the principal components
+eigs <- pcUSA$sdev^2
+plot(eigs, type = "b", main = "Scree Plot")
+
+# Loading matrix and biplot
+pcUSA$loadings
+biplot(pcUSA)
+\end{lstlisting}
+
+\item \textbf{Interpretation}:
+    \begin{itemize}
+        \item The \textbf{Scree plot} helps visualize the proportion of variance explained by each component.
+        \item \texttt{pcUSA\$loadings} provides the contribution of each variable to the components.
+        \item The first few components should ideally capture the majority of the variance.
+    \end{itemize}
+\end{itemize}
+
+\subsection{PCA using \texttt{prcomp}}
+\begin{itemize}
+    \item \texttt{prcomp()} is preferred over \texttt{princomp()} when the dataset is large, as it uses Singular Value Decomposition (SVD).
+    \item It provides a numerically stable solution, especially when dealing with highly correlated variables.
+    \item Example:
+\begin{lstlisting}[language=R]
+prusa <- prcomp(data, scale. = TRUE)
+summary(prusa)
+
+# Eigenvalues
+prusa$sdev^2
+
+# Biplot to visualize the scores and loadings
+biplot(prusa)
+\end{lstlisting}
+\item \textbf{Key Consideration}:
+    \begin{itemize}
+        \item Use `prcomp()` when numerical stability is a concern, especially for high-dimensional datasets.
+    \end{itemize}
+\end{itemize}
+
+\section{Factor Analysis using \texttt{FactoMineR}}
+\begin{itemize}
+    \item \texttt{FactoMineR} is a versatile package for advanced factor analysis and PCA.
+    \item It provides additional outputs like communalities, cosines, and variable contributions.
+    \item Example on \texttt{USArrests}:
+\begin{lstlisting}[language=R]
+library(FactoMineR)
+usafa <- PCA(USArrests)
+summary(usafa)
+
+# Accessing eigenvalues and variable loadings
+usafa$eig
+usafa$var$coord
+\end{lstlisting}
+
+\item \textbf{Practical Tip}:
+    \begin{itemize}
+        \item Use \texttt{FactoMineR} when you need to assess multiple dimensions, visualize variable contributions, or perform hierarchical clustering on principal components.
+    \end{itemize}
+\end{itemize}
+
+\section{Bartlett's Test and KMO Index using \texttt{psych}}
+\begin{itemize}
+    \item \textbf{Bartlett’s Test of Sphericity} tests if the correlation matrix is an identity matrix, indicating if the variables are sufficiently correlated to perform factor analysis.
+    \item Example using the Food Price dataset:
+\begin{lstlisting}[language=R]
+library(psych)
+R <- cor(food)
+cortest.bartlett(R, n = nrow(food))
+\end{lstlisting}
+
+\item \textbf{Kaiser-Meyer-Olkin (KMO) Index} assesses sampling adequacy.
+    \begin{itemize}
+        \item Values range from 0 to 1, with values above 0.6 indicating that the data is factorable.
+    \end{itemize}
+\begin{lstlisting}[language=R]
+kmo(food)
+\end{lstlisting}
+\item \textbf{Interpretation of KMO}:
+    \begin{itemize}
+        \item KMO $>$ 0.9: Excellent
+        \item 0.7 $>$ KMO $>$ 0.9: Good to average
+        \item KMO $<$ 0.5: Unacceptable
+    \end{itemize}
+\end{itemize}
+
+\section{Advanced PCA on Food Price Data}
+\begin{itemize}
+    \item \textbf{Test of Factorability} is essential before PCA to ensure that the variables are correlated.
+    \item PCA is performed using the correlation matrix when variables are on different scales.
+\begin{lstlisting}[language=R]
+pca_food <- princomp(food, cor = TRUE)
+summary(pca_food)
+
+# Loadings and visualization
+plot(pca_food, type = "lines", main = "Scree Plot for Food Prices")
+biplot(pca_food)
+\end{lstlisting}
+
+\item \textbf{Interpretation}:
+    \begin{itemize}
+        \item If the first two components explain a significant proportion of variance (e.g., >70\%), use them for further analysis.
+        \item Biplots provide insight into how variables contribute to each component.
+    \end{itemize}
+\end{itemize}
+
+\section{Component and Factor Loadings}
+\begin{itemize}
+    \item \textbf{Factor Loadings} indicate how much a variable contributes to a factor. Higher loadings suggest a stronger relationship with the factor.
+    \item Example:
+\begin{lstlisting}[language=R]
+pcUSA$loadings
+\end{lstlisting}
+
+\item \textbf{Communalities} measure the proportion of variance a variable shares with all components:
+\begin{lstlisting}[language=R]
+com1 <- (pcUSA$loadings[1,]*sqrt(eigs))^2
+sum(com1[1:2])  # Sum of communalities for the first two components
+\end{lstlisting}
+\end{itemize}
+
+\section{Factor Analysis of Heptathlon Data}
+\begin{itemize}
+    \item Factor Analysis is performed on the \texttt{heptathlon} dataset, taking into account different directions for specific variables.
+    \item Example:
+\begin{lstlisting}[language=R, breaklines=true]
+data("heptathlon", package = "HSAUR")
+pca_hep <- PCA(heptathlon, quanti.sup = 8)
+plot(pca_hep$eig[,1], type = "o", main = "Scree Plot for Heptathlon Data")
+\end{lstlisting}
+\item \textbf{Practical Tip}:
+    \begin{itemize}
+        \item Supplementary variables and individuals (\texttt{ind.sup}, \texttt{quanti.sup}) can be included to analyze additional points without affecting the main analysis.
+    \end{itemize}
+\end{itemize}

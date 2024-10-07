@@ -1,0 +1,173 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[a4paper, margin=1in]{geometry}
+
+\definecolor{codebg}{rgb}{0.95,0.95,0.95}
+\lstset{backgroundcolor=\color{codebg}, 
+        frame=single, 
+        basicstyle=\ttfamily,
+        keywordstyle=\color{blue},
+        commentstyle=\color{gray},
+        stringstyle=\color{red},
+        showstringspaces=false}
+
+\title{Multidimensional Scaling in R: Comprehensive Guide}
+\author{Dani}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction to Multidimensional Scaling (MDS)}
+\textbf{Multidimensional Scaling (MDS)} is a set of methods for visualizing the structure of distance data in a lower-dimensional space. The purpose is to project high-dimensional dissimilarities into a 2D or 3D plane while retaining as much information about their relative similarities as possible.
+
+\subsection{Key Types of MDS}
+There are two primary types of MDS based on the treatment of dissimilarities:
+\begin{itemize}
+    \item \textbf{Metric MDS}: Preserves the actual dissimilarity values, making it suitable for data where the numerical distance has a direct interpretation.
+    \item \textbf{Non-Metric MDS}: Focuses on preserving the rank order of dissimilarities rather than exact values. This is useful for data where only the order of similarity matters (e.g., preference rankings).
+\end{itemize}
+
+\subsection{Choosing Between Metric and Non-Metric MDS}
+The decision between Metric and Non-Metric MDS often depends on whether the distance matrix contains meaningful magnitudes. For example:
+\begin{itemize}
+    \item Use \textbf{Metric MDS} when:
+        \begin{itemize}
+            \item You have continuous data with interpretable Euclidean distances.
+            \item Exact distances matter more than their order.
+        \end{itemize}
+    \item Use \textbf{Non-Metric MDS} when:
+        \begin{itemize}
+            \item Dealing with ordinal or categorical data.
+            \item Only the relative ranking of distances is meaningful.
+            \item You suspect that a non-linear relationship might better capture the patterns in the data.
+        \end{itemize}
+\end{itemize}
+
+\section{Distance Calculations using the \texttt{cluster} Package}
+\subsection{Understanding the \texttt{daisy()} Function}
+\begin{itemize}
+    \item The \texttt{daisy()} function is highly versatile for computing distance matrices in R, particularly for mixed-type data.
+    \item \textbf{Available Distance Metrics}:
+    \begin{itemize}
+        \item \textbf{Euclidean Distance}: Measures straight-line distance and assumes continuous, numeric data.
+        \item \textbf{Gower Distance}: Handles mixed data types (numeric, ordinal, and categorical).
+    \end{itemize}
+    \item \textbf{Example}:
+\begin{lstlisting}[language=R]
+library(cluster)
+data("iris")
+
+# Calculate Euclidean distance
+euclidean_dist <- daisy(iris[, -5], metric = "euclidean")
+
+# Calculate Gower distance
+gower_dist <- daisy(iris[, -5], metric = "gower")
+\end{lstlisting}
+\item \textbf{Practical Consideration}:
+    \begin{itemize}
+        \item \texttt{daisy()} is often preferable over \texttt{dist()} when working with data frames containing non-numeric variables.
+        \item Consider scaling your data when using Euclidean distances to avoid variables with larger scales dominating the result.
+    \end{itemize}
+\end{itemize}
+
+\section{Principal Coordinates Analysis using \texttt{labdsv}}
+\begin{itemize}
+    \item \textbf{Principal Coordinates Analysis (PCoA)} is a linear method that represents dissimilarities in Euclidean space.
+    \item Ideal for visualizing data with a known distance matrix.
+    \item Example using the \texttt{eurodist} dataset:
+\begin{lstlisting}[language=R, breaklines=true]
+library("labdsv")
+
+# Perform Principal Coordinates Analysis (PCoA)
+pco_eu <- pco(eurodist, k = 2)
+
+# Visualization
+plot(pco_eu$points[,1], pco_eu$points[,2], type = "n", main = "PCoA of European Cities")
+text(pco_eu$points[,1], pco_eu$points[,2], labels(eurodist), cex = 0.8)
+\end{lstlisting}
+\end{itemize}
+
+\section{Classical MDS using \texttt{cmdscale()} from the \texttt{stats} Package}
+\begin{itemize}
+    \item Classical MDS (`cmdscale`) is ideal when the goal is to retain the true Euclidean distances.
+    \item Computes a configuration that best fits the input dissimilarity matrix.
+    \item Example:
+\begin{lstlisting}[language=R, breaklines=true]
+# Perform Classical MDS on eurodist dataset
+mds_eu <- cmdscale(eurodist, eig = TRUE)
+
+# Plotting the MDS solution
+plot(mds_eu$points[,1], mds_eu$points[,2], main = "Classical MDS", type = "n")
+text(mds_eu$points[,1], mds_eu$points[,2], labels(eurodist), cex = 0.8)
+\end{lstlisting}
+
+\item \textbf{Interpretation}:
+    \begin{itemize}
+        \item The first two components typically capture the majority of the variance.
+        \item The eigenvalues indicate the variance explained by each dimension.
+        \item Negative eigenvalues suggest poor fit and indicate that the distance matrix might not be truly Euclidean.
+    \end{itemize}
+\end{itemize}
+
+\section{Non-Metric MDS using \texttt{isoMDS()} from the \texttt{MASS} Package}
+\begin{itemize}
+    \item Non-Metric MDS (`isoMDS`) preserves the rank order of dissimilarities.
+    \item Useful for understanding non-linear relationships in the data.
+\begin{lstlisting}[language=R, breaklines=true]
+library(MASS)
+
+# Perform Non-Metric MDS
+usa_nmds <- isoMDS(dist(USArrests))
+
+# Visualization
+plot(usa_nmds$points, main = "Non-Metric MDS on USArrests", type = "n")
+text(usa_nmds$points, labels = row.names(USArrests), cex = 0.8)
+\end{lstlisting}
+\item \textbf{Interpreting Stress Values}:
+    \begin{itemize}
+        \item The `stress` value indicates how well the 2D configuration matches the original dissimilarities.
+        \item Lower stress values (\(< 0.1\)) indicate a good fit, while higher values suggest distortions.
+    \end{itemize}
+\end{itemize}
+
+\section{Non-Linear Mapping with \texttt{sammon()}}
+\begin{itemize}
+    \item The \texttt{sammon()} function in R performs a form of non-metric MDS, but it emphasizes preserving local structures.
+\begin{lstlisting}[language=R, breaklines=true]
+nmds_sam <- sammon(dist(USArrests))
+plot(nmds_sam$points, main = "Sammon Mapping on USArrests", type = "n")
+text(nmds_sam$points, labels = row.names(USArrests))
+\end{lstlisting}
+\item \textbf{When to Use Sammon Mapping}:
+    \begin{itemize}
+        \item When maintaining local neighborhood distances is more important than preserving global structure.
+    \end{itemize}
+\end{itemize}
+
+\section{3D Visualizations using the \texttt{rgl} Package}
+\begin{itemize}
+    \item For visualizing MDS results in 3D, use the `rgl` package:
+\begin{lstlisting}[language=R, breaklines=true]
+library(rgl)
+
+# 3D Visualization
+plot3d(mds_eu$points[,1:3], main = "3D MDS Visualization of European Cities")
+\end{lstlisting}
+\item \textbf{Practical Tip}: Use `rgl` to interactively rotate and explore the 3D configuration.
+\end{itemize}
+
+\section{Advanced Considerations: Goodness-of-Fit Analysis}
+\begin{itemize}
+    \item Use the sum of squared eigenvalues and stress values to evaluate how well the MDS solution represents the original data.
+    \item Example:
+\begin{lstlisting}[language=R, breaklines=true]
+sum(mds_eu$eig[1:2]) / sum(mds_eu$eig)  # Proportion of variance explained by first 2 dimensions
+\end{lstlisting}
+\item \textbf{Key Insight}: A higher proportion suggests that the first two dimensions capture most of the variance, making the 2D plot a good representation.
+\end{itemize}
+
+\end{document}

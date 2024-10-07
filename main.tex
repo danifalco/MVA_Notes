@@ -1,0 +1,42 @@
+\documentclass{report}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage[a4paper, margin=1in]{geometry}
+
+\definecolor{codebg}{rgb}{0.95,0.95,0.95}
+\lstset{backgroundcolor=\color{codebg}, 
+        frame=single, 
+        basicstyle=\ttfamily\small,
+        keywordstyle=\color{blue},
+        commentstyle=\color{gray},
+        stringstyle=\color{red},
+        showstringspaces=false,
+        breaklines=true}
+
+\title{MVA Summary Notes}
+\author{Dani}
+\date{}
+
+\begin{document}
+    \maketitle
+    \tableofcontents
+
+    \chapter{Intro}
+    \input{sections/_intro.tex}
+
+    \newpage
+    \chapter{Data Analysis and Visualisation}
+    \input{sections/_data_analysis.tex}
+
+    \newpage
+    \chapter{Principal Component Analysis}
+    \input{sections/_pca.tex}
+
+    \newpage
+    \chapter{Multidimensional Scaling}
+    \input{sections/_mds.tex}
+
+
+\end{document}

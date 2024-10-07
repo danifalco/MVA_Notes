@@ -1,0 +1,220 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[a4paper, margin=1in]{geometry}
+
+\definecolor{codebg}{rgb}{0.95,0.95,0.95}
+\lstset{backgroundcolor=\color{codebg}, 
+        frame=single, 
+        basicstyle=\ttfamily\small,
+        keywordstyle=\color{blue},
+        commentstyle=\color{gray},
+        stringstyle=\color{red},
+        showstringspaces=false,
+        breaklines=true}
+
+\title{Data Imputation, Visualization, and Descriptive Analysis in R}
+\author{Dani}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+This guide covers techniques for handling missing data, performing imputation, and visualizing various types of data. Understanding how to manage and analyze incomplete datasets is crucial in applied statistics and data science, especially when working with real-world data that often has missing or messy entries.
+
+\section{Handling Missing Data}
+\subsection{Inspecting Missing Data}
+\begin{itemize}
+    \item Use the `datasets` package to access built-in datasets like \texttt{airquality}.
+    \item Calculate the proportion of missing data in each variable:
+\begin{lstlisting}[language=R]
+library(datasets)
+data("airquality")
+
+# Proportion of missing observations
+for (i in 1:6){
+  print(sum(is.na(airquality[,i]))/length(airquality[,i])*100)
+}
+\end{lstlisting}
+
+\item \textbf{Interpretation}: Identifying variables with high proportions of missing data is the first step in deciding whether to impute, remove, or analyze them separately.
+\end{itemize}
+
+\subsection{Omitting NA Values}
+\begin{itemize}
+    \item Omit missing values using \texttt{na.omit()}:
+\begin{lstlisting}[language=R]
+air_omit <- na.omit(airquality)
+summary(air_omit)
+
+# Visualize pairwise relationships
+plot(air_omit[,1:4])
+\end{lstlisting}
+
+\item \textbf{Key Insight}: Use omission only when the proportion of missing data is minimal, as dropping rows may result in information loss and biased analyses.
+\end{itemize}
+
+\subsection{Visualizing Missing Data Patterns}
+\begin{itemize}
+    \item Use the \texttt{mice} and \texttt{VIM} packages to visualize missing data patterns:
+\begin{lstlisting}[language=R]
+install.packages("mice")
+library(mice)
+
+# Visualize missing data patterns
+md.pattern(airquality)
+
+install.packages("VIM")
+library(VIM)
+aggr(airquality)  # Aggregated plot of missing values
+\end{lstlisting}
+
+\item \textbf{Best Practice}: Visualizations such as aggregated bar plots or missing data patterns help determine which variables have systematic missingness.
+\end{itemize}
+
+\section{Data Imputation}
+\subsection{Mean Imputation}
+\begin{itemize}
+    \item Replace missing values with the variable mean:
+\begin{lstlisting}[language=R]
+install.packages("Hmisc")
+library(Hmisc)
+
+airquality_imp <- airquality
+airquality_imp$Ozone <- with(airquality_imp, impute(Ozone, mean))
+
+# Verify imputation
+summary(airquality_imp$Ozone)
+\end{lstlisting}
+
+\item \textbf{Limitations}: Mean imputation reduces variance and may lead to biased estimates, especially for non-normally distributed variables.
+\end{itemize}
+
+\subsection{Multivariate Imputation with \texttt{mice}}
+\begin{itemize}
+    \item Impute using multiple iterations to capture uncertainty:
+\begin{lstlisting}[language=R]
+library(mice)
+
+# Mean imputation with one iteration
+imp_mice <- mice(airquality, method = "mean", m = 1, maxit = 1)
+complete_data <- complete(imp_mice)
+
+# Compare distributions
+plot(density(airquality$Ozone, na.rm = TRUE), ylim = c(0, 0.025))
+lines(density(complete_data$Ozone), col = 2)
+\end{lstlisting}
+
+\item \textbf{Practical Tip}: Use \texttt{m = 5} or more for robust imputations. Visualize imputed vs. original distributions to ensure consistency.
+\end{itemize}
+
+\subsection{Regression-Based Imputation}
+\begin{itemize}
+    \item Impute using linear regression:
+\begin{lstlisting}[language=R]
+reg_imp <- mice(airquality, method = "norm.predict", m = 1)
+air_reg_imp <- complete(reg_imp)
+
+# Visualize imputed values
+hist(airquality$Ozone)
+hist(reg_imp$imp$Ozone[,1], add = TRUE, col = 2)
+\end{lstlisting}
+
+\item \textbf{Note}: Regression imputation preserves relationships but may artificially inflate R-squared values.
+\end{itemize}
+
+\section{Poverty Study Data: Missing Data Codifications}
+\begin{itemize}
+    \item Handle non-standard missing value codifications (e.g., -99):
+\begin{lstlisting}[language=R]
+library(readr)
+pov_data <- read_table("PovertyStudy.dat")
+pov_data$GNP[pov_data$GNP == -99] <- NA
+
+# Replace with median
+pov_data$GNP[is.na(pov_data$GNP)] <- median(pov_data$GNP, na.rm = TRUE)
+\end{lstlisting}
+
+\item \textbf{Best Practice}: Convert placeholders to NA and then impute to avoid misleading results.
+\end{itemize}
+
+\section{Data Transformation: Box-Cox Transformation}
+\begin{itemize}
+    \item Use Box-Cox transformation to stabilize variance:
+\begin{lstlisting}[language=R]
+library(MASS)
+
+# Box-Cox transformation on GNP
+boxcox(pov_data$GNP ~ 1, lambda = seq(-1, 1, by = 0.1))
+
+# Log transformation
+lGNP <- log(pov_data$GNP)
+\end{lstlisting}
+
+\item \textbf{Tip}: Choose the transformation that minimizes skewness and maximizes normality.
+\end{itemize}
+
+\section{Data Visualization Techniques}
+\subsection{Visualization of Numerical Variables}
+\begin{itemize}
+    \item Use \textbf{Chernoff Faces} to visualize multidimensional data:
+\begin{lstlisting}[language=R]
+library(aplpack)
+data(longley)
+faces(longley[1:9,], face.type = 0)
+\end{lstlisting}
+
+\item \textbf{Application}: Useful for detecting patterns in small datasets with multiple variables.
+\end{itemize}
+
+\subsection{Correlation Plots}
+\begin{itemize}
+    \item Visualize correlation matrices with \texttt{corrplot}:
+\begin{lstlisting}[language=R]
+install.packages("corrplot")
+library(corrplot)
+
+cr <- cor(pov_data[, 1:6])
+corrplot(cr)
+\end{lstlisting}
+
+\item \textbf{Tip}: Use the \texttt{method = "number"} argument to show correlation values directly.
+\end{itemize}
+
+\section{Visualizing Categorical Data}
+\subsection{Bar Plots and Mosaic Plots}
+\begin{itemize}
+    \item Create bar plots for categorical variables:
+\begin{lstlisting}[language=R]
+barplot(prop.table(tab), col = c("red", "blue"),
+        legend.text = c("vshaped", "straight"),
+        main = "Distribution of Satisfaction Level",
+        ylim = c(0, 0.7))
+\end{lstlisting}
+
+\item Use mosaic plots for visualizing interactions:
+\begin{lstlisting}[language=R]
+library(RColorBrewer)
+
+# Define pastel colors
+pastel_colors <- brewer.pal(3, "Pastel1")
+mosaicplot(tab, main = "Transmission Type vs. Engine Shape", color = pastel_colors)
+\end{lstlisting}
+\end{itemize}
+
+\section{Summary Tables and Factor Data}
+\begin{itemize}
+    \item Cross-tabulations and probability tables:
+\begin{lstlisting}[language=R]
+# Conditional probabilities by row
+prop.table(tab, 1)
+
+# Joint and marginal probabilities
+prop.table(tab)
+\end{lstlisting}
+\end{itemize}
+
+\end{document}
